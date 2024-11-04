@@ -1,12 +1,33 @@
+from django.http import HttpRequest
 from django.views.generic import (
     CreateView, ListView, UpdateView, DeleteView, DetailView
 )
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
-from .forms import BirthdayForm
-from .models import Birthday
+from .forms import BirthdayForm, CongratulationForm
+from .models import Birthday, Congratulation
 from .utils import calculate_birthday_countdown
+
+
+class CongratulationCreateView(LoginRequiredMixin, CreateView):
+    birthday = None
+    model = Congratulation
+    form_class = CongratulationForm
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        self.birthday = get_object_or_404(Birthday, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.birthday = self.birthday
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('birthday:detail', kwargs={'pk': self.birthday.pk})
 
 
 class BirthdayListView(ListView):
@@ -18,6 +39,10 @@ class BirthdayListView(ListView):
 class BirthdayCreateView(CreateView):
     model = Birthday
     form_class = BirthdayForm
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
 
 
 class BirthdayUpdateView(UpdateView):
@@ -37,5 +62,9 @@ class BirthdayDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context['birthday_countdown'] = calculate_birthday_countdown(
             self.object.birthday
+        )
+        context['form'] = CongratulationForm()
+        context['congratulations'] = (
+            self.object.congratulations.select_related('author')
         )
         return context

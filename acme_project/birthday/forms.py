@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 
 
-from .models import Birthday
+from .models import Birthday, Congratulation
 
 
 BEATLES = {'Джон Леннон', 'Пол Маккартни', 'Джордж Харрисон', 'Ринго Старр'}
@@ -28,7 +28,9 @@ class BirthdayForm(forms.ModelForm):
         if f'{first_name} {last_name}' in BEATLES:
             send_mail(
                 subject='Another Beatles member',
-                message=f'{first_name} {last_name} пытался опубликовать запись!',
+                message=(
+                    f'{first_name} {last_name} пытался опубликовать запись!'
+                ),
                 from_email='birthday_form@acme.not',
                 recipient_list=['admin@acme.not'],
                 fail_silently=True,
@@ -36,3 +38,10 @@ class BirthdayForm(forms.ModelForm):
             raise ValidationError(
                 'Мы тоже любим Beatles, но введите, пожалуйста, настоящее имя!'
             )
+
+
+class CongratulationForm(forms.ModelForm):
+
+    class Meta:
+        model = Congratulation
+        fields = ('text',)
